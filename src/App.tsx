@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { entrar, salir, useAuth } from './auth'
 import { setUid } from './db'
-import { DatosProvider } from './datos'
+import { DatosProvider, useDatos } from './datos'
+import { descargarExcel } from './exportar'
 import { subirPendientes, usePendientes } from './fotos'
 import { useEnLinea } from './online'
 import { ir, useRuta } from './ruta'
-import { Flor, ICON, Toasts } from './ui'
+import { Flor, ICON, Toasts, toast } from './ui'
 import Inicio from './pages/Inicio'
 import Siembras from './pages/Siembras'
 import LoteVista from './pages/Lote'
@@ -39,6 +40,7 @@ function Estado() {
 
 function Menu() {
   const { user } = useAuth()
+  const datos = useDatos()
   const [open, setOpen] = useState(false)
   return (
     <div className="menu">
@@ -47,6 +49,7 @@ function Menu() {
       </button>
       {open && <div className="sheet" onClick={e => { if (e.target === e.currentTarget) setOpen(false) }}><div role="dialog" aria-modal="true" className="stack">
         <h2>{user?.displayName}</h2><div className="muted">{user?.email}</div>
+        <button className="btn ghost full" onClick={() => descargarExcel(datos).then(() => toast('Archivo de Excel descargado')).catch(() => toast('No se pudo crear el archivo'))}>Descargar todo en Excel</button>
         <p className="muted" style={{ margin: 0, fontSize: '.88rem' }}>Si sales, lo que no haya subido a la nube se queda en este celular hasta que vuelvas a entrar.</p>
         <div className="two"><button className="btn ghost" onClick={() => setOpen(false)}>Cerrar</button><button className="btn" onClick={() => salir()}>Salir</button></div>
       </div></div>}
