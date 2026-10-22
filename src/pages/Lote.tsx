@@ -9,6 +9,8 @@ import { agregarFotos, borrarFoto, useFotoLocal } from '../fotos'
 import { ir } from '../ruta'
 import { Confirmar, Sheet, toast, valor } from '../ui'
 import { Diferencia } from './Inicio'
+import { Kpis, Movimientos } from './comun'
+import { totales } from '../domain/cuentas'
 
 function Miniatura({ f, onVer }: { f: ConId<Foto>; onVer: (src: string) => void }) {
   const local = useFotoLocal(f.id, f.estado === 'pendiente' || !f.url)
@@ -19,17 +21,23 @@ function Miniatura({ f, onVer }: { f: ConId<Foto>; onVer: (src: string) => void 
 }
 
 export default function LoteVista({ id }: { id: string }) {
-  const { lotes, temporadas, notas, fotos, listo } = useDatos()
+  const { lotes, temporadas, notas, fotos, labores, cosechas, movs, listo } = useDatos()
   const { user } = useAuth()
   const [open, setOpen] = useState<string | null>(null)
   const [ver, setVer] = useState<{ src: string; f: ConId<Foto> } | null>(null)
   const [editar, setEditar] = useState(false)
   const [borrarLote, setBorrarLote] = useState(false)
+  const [borrarItem, setBorrarItem] = useState<{ col: string; id: string; txt: string } | null>(null)
   const l = lotes.find(x => x.id === id)
   if (!listo) return <div className="empty">Cargando…</div>
   if (!l) return <div className="stack"><button className="back" onClick={() => ir('cultivo/siembras')}>← Siembras</button><div className="empty">Este lote ya no existe.</div></div>
   const t = temporadas.find(x => x.id === l.temporadaId)
   const st = inicios(l), i = etapaActual(l), d = diaDe(l)
+  const labs = labores.filter(x => x.loteId === l.id).sort((a, b) => a.fecha < b.fecha ? 1 : -1)
+  const cos = cosechas.filter(x => x.loteId === l.id).sort((a, b) => a.fecha < b.fecha ? 1 : -1)
+  const sumC = (p: string) => cos.filter(c => c.producto === p).reduce((a, c) => a + c.cantidad, 0)
+  const kgSem = sumC('Semilla')
+  const movsL = movs.filter(m => m.loteId === l.id)
   const abierta = open ?? TODAS[Math.max(0, Math.min(i, TODAS.length - 1))].k
 
   const subir = async (etapa: string, files: FileList | null) => {
@@ -94,7 +102,14 @@ export default function LoteVista({ id }: { id: string }) {
             </div></div>)
         })}</div>
       </section>
-      <section className="stack"><h2>Bitácora, cosecha y plata del lote</h2><div className="empty">Llegan en la fase 2, junto con Registrar y Cuentas.</div></section>
+      <section className="stack"><div className="row between"><h2>Bitácora</h2><button className="btn small ghost" onClick={() => ir(`cultivo/registrar/labor/${l.id}`)}>+ Labor</button></div>
+        <div className="card list">{labs.length ? labs.map(x => <button key={x.id} className="li" style={{ background: 'none', border: 0, borderBottom: '1px solid var(--line)', color: 'inherit', textAlign: 'left', width: '100%', font: 'inherit' }} onClick={() => setBorrarItem({ col: 'labores', id: x.id, txt: `${x.tipo} del ${fcorta(x.fecha)}` })}><div><b>{x.tipo}</b><small>{fcorta(x.fecha)}{x.nota ? ' · ' + x.nota : ''}</small></div></button>) : <span className="muted">Sin labores registradas.</span>}</div></section>
+      <section className="stack"><div className="row between"><h2>Cosecha</h2><button className="btn small ghost" onClick={() => ir(`cultivo/registrar/cosecha/${l.id}`)}>+ Cosecha</button></div>
+        <div className="kpis"><div className="kpi"><span>Semilla</span><b className="num">{kgSem.toLocaleString('es-CO')} kg</b></div><div className="kpi"><span>Flor</span><b className="num">{sumC('Flor').toLocaleString('es-CO')} tallos</b></div><div className="kpi"><span>Rendimiento</span><b className="num">{kgSem && l.area ? Math.round(kgSem / l.area * 10000).toLocaleString('es-CO') + ' kg/ha' : '—'}</b></div></div>
+        {cos.length > 0 && <div className="card list">{cos.map(c => <button key={c.id} className="li" style={{ background: 'none', border: 0, borderBottom: '1px solid var(--line)', color: 'inherit', textAlign: 'left', width: '100%', font: 'inherit' }} onClick={() => setBorrarItem({ col: 'cosechas', id: c.id, txt: `Cosecha de ${c.producto.toLowerCase()} del ${fcorta(c.fecha)}` })}><div><b>{c.producto}</b><small>{fcorta(c.fecha)}</small></div><b className="num">{c.cantidad.toLocaleString('es-CO')} {c.unidad}</b></button>)}</div>}</section>
+      <section className="stack"><div className="row between"><h2>Plata de este lote</h2><button className="btn small ghost" onClick={() => ir(`cultivo/registrar/gasto/${l.id}`)}>+ Registro</button></div><Kpis t={totales(movsL)} />
+        <Movimientos movs={movsL} vacio="Sin ingresos ni gastos en este lote." /></section>
+      {borrarItem && <Confirmar titulo="¿Borrar este registro?" texto={borrarItem.txt + '.'} si="Borrar" onCerrar={() => setBorrarItem(null)} onSi={() => { borrar(borrarItem.col, borrarItem.id); toast('Registro borrado') }} />}
 
       {ver && <div className="viewer" onClick={e => { if (e.target === e.currentTarget) setVer(null) }}><div className="stack" style={{ alignItems: 'center' }}>
         <img src={ver.src} alt="" />
@@ -110,8 +125,11 @@ export default function LoteVista({ id }: { id: string }) {
         <label>Temporada<select name="temp" defaultValue={l.temporadaId}>{temporadas.map(x => <option key={x.id} value={x.id}>{x.nombre} {x.anio}</option>)}</select></label>
         <button type="button" className="link neg" style={{ alignSelf: 'flex-start' }} onClick={() => { setEditar(false); setBorrarLote(true) }}>Borrar este lote</button>
       </Sheet>}
-      {borrarLote && <Confirmar titulo="¿Borrar el lote?" texto="Se borran sus fechas, notas y fotos. No se puede deshacer." si="Sí, borrar" onCerrar={() => setBorrarLote(false)} onSi={() => {
+      {borrarLote && <Confirmar titulo="¿Borrar el lote?" texto="Se borran sus fechas, notas, fotos, labores y cosechas. Sus ventas y gastos quedan en la temporada. No se puede deshacer." si="Sí, borrar" onCerrar={() => setBorrarLote(false)} onSi={() => {
         notas.filter(n => n.loteId === l.id).forEach(n => borrar('notas', n.id))
+        labores.filter(n => n.loteId === l.id).forEach(n => borrar('labores', n.id))
+        cosechas.filter(n => n.loteId === l.id).forEach(n => borrar('cosechas', n.id))
+        movs.filter(n => n.loteId === l.id).forEach(n => actualizar('movs', n.id, { loteId: null }))
         fotos.filter(f => f.loteId === l.id).forEach(f => borrarFoto(f.id, f.path, f.estado === 'subida'))
         borrar('lotes', l.id); toast('Lote borrado'); ir('cultivo/siembras')
       }} />}

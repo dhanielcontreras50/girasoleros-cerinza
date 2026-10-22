@@ -5,6 +5,8 @@ import type { Lote } from '../domain/tipos'
 import type { ConId } from '../db'
 import { ir } from '../ruta'
 import { Flor } from '../ui'
+import { totales } from '../domain/cuentas'
+import { Kpis, Movimientos } from './comun'
 
 export function Diferencia({ v, prom: r, palabra = "" }: { v: number | null; prom: number | null; palabra?: string }) {
   if (v === null || r === null) return null
@@ -34,8 +36,10 @@ export function LoteCard({ l, lotes, temporada }: { l: ConId<Lote>; lotes: ConId
 }
 
 export default function Inicio() {
-  const { lotes, temporadas, listo } = useDatos()
+  const { lotes, temporadas, movs, listo } = useDatos()
   const tn = (id: string) => { const t = temporadas.find(x => x.id === id); return t ? `${t.nombre} ${t.anio}` : '' }
+  const tem = [...temporadas].sort((a, b) => a.inicio < b.inicio ? 1 : -1)[0]
+  const tt = totales(movs.filter(m => m.temporadaId === tem?.id))
   const activos = lotes.filter(l => etapaActual(l) < TERMINADO).sort((a, b) => a.fechaSiembra < b.fechaSiembra ? -1 : 1)
   return (
     <div className="stack-lg">
@@ -45,6 +49,9 @@ export default function Inicio() {
           : <div className="empty">Aún no hay lotes sembrados. Ve a <b>Siembras</b>, crea la temporada y agrega el lote con su fecha de siembra.
             <div style={{ marginTop: 10 }}><button className="btn small" onClick={() => ir('cultivo/siembras')}>Ir a Siembras</button></div></div>}
       </section>
+      {tem && <section className="stack"><div className="row between"><h2>{tem.nombre} {tem.anio}</h2><span className="muted">{tt.personas} turistas</span></div><Kpis t={tt} /></section>}
+      <section className="stack"><div className="row between"><h2>Últimos registros</h2><button className="link" onClick={() => ir('cultivo/cuentas')}>Ver todo</button></div>
+        <Movimientos movs={[...movs].sort((a, b) => a.fecha < b.fecha ? 1 : -1).slice(0, 5)} vacio="Aún no hay registros. Usa el botón + de abajo." /></section>
     </div>
   )
 }

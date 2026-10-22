@@ -9,6 +9,8 @@ import { Flor, ICON, Pronto, Toasts } from './ui'
 import Inicio from './pages/Inicio'
 import Siembras from './pages/Siembras'
 import LoteVista from './pages/Lote'
+import Registrar from './pages/Registrar'
+import Cuentas from './pages/Cuentas'
 
 function Login() {
   const [error, setError] = useState('')
@@ -53,13 +55,13 @@ const NAV: Record<string, [string, string, string][]> = {
 }
 
 function Contenido({ r }: { r: string[] }) {
-  const [area, tab, id] = r
+  const [area, tab, id, extra] = r
   if (area === 'tostadas') return <Pronto titulo="Semillas tostadas" fase={3} texto="Recetas con la pérdida al tostar, paquetes por tamaño, producción, ventas e inventario." />
   if (area === 'analisis') return <Pronto titulo={tab === 'tostadas' ? 'Análisis de semillas tostadas' : 'Análisis del cultivo'} fase={4} texto="Rentabilidad con indicadores y porcentajes, y los tiempos de cada etapa comparados con el promedio." />
   if (tab === 'siembras') return <Siembras />
   if (tab === 'lote' && id) return <LoteVista id={id} />
-  if (tab === 'registrar') return <Pronto titulo="Registrar" fase={2} texto="Gastos, ventas (con productos nuevos), turistas, cosecha y labores." />
-  if (tab === 'cuentas') return <Pronto titulo="Cuentas" fase={2} texto="Ingresos, gastos y ganancia por año, temporada y lote." />
+  if (tab === 'registrar') return <Registrar key={r.join('/')} tipo0={id} lote0={extra} />
+  if (tab === 'cuentas') return <Cuentas />
   return <Inicio />
 }
 
