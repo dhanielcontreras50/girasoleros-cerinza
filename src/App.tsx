@@ -5,7 +5,7 @@ import { DatosProvider } from './datos'
 import { subirPendientes, usePendientes } from './fotos'
 import { useEnLinea } from './online'
 import { ir, useRuta } from './ruta'
-import { Flor, ICON, Pronto, Toasts } from './ui'
+import { Flor, ICON, Toasts } from './ui'
 import Inicio from './pages/Inicio'
 import Siembras from './pages/Siembras'
 import LoteVista from './pages/Lote'
@@ -16,6 +16,7 @@ import Recetas from './pages/tostadas/Recetas'
 import RecetaVista from './pages/tostadas/Receta'
 import TRegistrar from './pages/tostadas/Registrar'
 import TCuentas from './pages/tostadas/Cuentas'
+import Analisis from './pages/Analisis'
 
 function Login() {
   const [error, setError] = useState('')
@@ -68,7 +69,7 @@ function Contenido({ r }: { r: string[] }) {
     if (tab === 'cuentas') return <TCuentas />
     return <TInicio />
   }
-  if (area === 'analisis') return <Pronto titulo={tab === 'tostadas' ? 'Análisis de semillas tostadas' : 'Análisis del cultivo'} fase={4} texto="Rentabilidad con indicadores y porcentajes, y los tiempos de cada etapa comparados con el promedio." />
+  if (area === 'analisis') return <Analisis key={tab} area={tab} />
   if (tab === 'siembras') return <Siembras />
   if (tab === 'lote' && id) return <LoteVista id={id} />
   if (tab === 'registrar') return <Registrar key={r.join('/')} tipo0={id} lote0={extra} />
