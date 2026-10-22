@@ -1,9 +1,9 @@
 import { createContext, useContext, type ReactNode } from 'react'
 import { useCol, type ConId } from './db'
-import type { Cosecha, Foto, Labor, Lote, Mov, Nota, Producto, Temporada } from './domain/tipos'
+import type { Cosecha, Foto, Labor, Lote, Mov, Nota, Paquete, Producto, Receta, Tanda, Temporada, TGasto, TVenta } from './domain/tipos'
 
-type Datos = { temporadas: ConId<Temporada>[]; lotes: ConId<Lote>[]; notas: ConId<Nota>[]; fotos: ConId<Foto>[]; movs: ConId<Mov>[]; cosechas: ConId<Cosecha>[]; labores: ConId<Labor>[]; productos: ConId<Producto>[]; listo: boolean }
-const Ctx = createContext<Datos>({ temporadas: [], lotes: [], notas: [], fotos: [], movs: [], cosechas: [], labores: [], productos: [], listo: false })
+type Datos = { temporadas: ConId<Temporada>[]; lotes: ConId<Lote>[]; notas: ConId<Nota>[]; fotos: ConId<Foto>[]; movs: ConId<Mov>[]; cosechas: ConId<Cosecha>[]; labores: ConId<Labor>[]; productos: ConId<Producto>[]; recetas: ConId<Receta>[]; paquetes: ConId<Paquete>[]; tandas: ConId<Tanda>[]; tventas: ConId<TVenta>[]; tgastos: ConId<TGasto>[]; listo: boolean }
+const Ctx = createContext<Datos>({ temporadas: [], lotes: [], notas: [], fotos: [], movs: [], cosechas: [], labores: [], productos: [], recetas: [], paquetes: [], tandas: [], tventas: [], tgastos: [], listo: false })
 
 export function DatosProvider({ children }: { children: ReactNode }) {
   const temporadas = useCol<Temporada>('temporadas')
@@ -14,7 +14,12 @@ export function DatosProvider({ children }: { children: ReactNode }) {
   const cosechas = useCol<Cosecha>('cosechas')
   const labores = useCol<Labor>('labores')
   const productos = useCol<Producto>('productos')
-  const v: Datos = { temporadas: temporadas || [], lotes: lotes || [], notas: notas || [], fotos: fotos || [], movs: movs || [], cosechas: cosechas || [], labores: labores || [], productos: productos || [], listo: !!(temporadas && lotes) }
+  const recetas = useCol<Receta>('recetas')
+  const paquetes = useCol<Paquete>('paquetes')
+  const tandas = useCol<Tanda>('tandas')
+  const tventas = useCol<TVenta>('tventas')
+  const tgastos = useCol<TGasto>('tgastos')
+  const v: Datos = { temporadas: temporadas || [], lotes: lotes || [], notas: notas || [], fotos: fotos || [], movs: movs || [], cosechas: cosechas || [], labores: labores || [], productos: productos || [], recetas: recetas || [], paquetes: paquetes || [], tandas: tandas || [], tventas: tventas || [], tgastos: tgastos || [], listo: !!(temporadas && lotes) }
   return <Ctx.Provider value={v}>{children}</Ctx.Provider>
 }
 export const useDatos = () => useContext(Ctx)

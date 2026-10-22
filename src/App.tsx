@@ -11,6 +11,11 @@ import Siembras from './pages/Siembras'
 import LoteVista from './pages/Lote'
 import Registrar from './pages/Registrar'
 import Cuentas from './pages/Cuentas'
+import TInicio from './pages/tostadas/Inicio'
+import Recetas from './pages/tostadas/Recetas'
+import RecetaVista from './pages/tostadas/Receta'
+import TRegistrar from './pages/tostadas/Registrar'
+import TCuentas from './pages/tostadas/Cuentas'
 
 function Login() {
   const [error, setError] = useState('')
@@ -56,7 +61,13 @@ const NAV: Record<string, [string, string, string][]> = {
 
 function Contenido({ r }: { r: string[] }) {
   const [area, tab, id, extra] = r
-  if (area === 'tostadas') return <Pronto titulo="Semillas tostadas" fase={3} texto="Recetas con la pérdida al tostar, paquetes por tamaño, producción, ventas e inventario." />
+  if (area === 'tostadas') {
+    if (tab === 'recetas') return <Recetas />
+    if (tab === 'receta' && id) return <RecetaVista id={id} />
+    if (tab === 'registrar') return <TRegistrar key={r.join('/')} tipo0={id} rec0={extra} />
+    if (tab === 'cuentas') return <TCuentas />
+    return <TInicio />
+  }
   if (area === 'analisis') return <Pronto titulo={tab === 'tostadas' ? 'Análisis de semillas tostadas' : 'Análisis del cultivo'} fase={4} texto="Rentabilidad con indicadores y porcentajes, y los tiempos de cada etapa comparados con el promedio." />
   if (tab === 'siembras') return <Siembras />
   if (tab === 'lote' && id) return <LoteVista id={id} />
@@ -68,7 +79,7 @@ function Contenido({ r }: { r: string[] }) {
 function Shell() {
   const r = useRuta()
   const [area, tab0] = r
-  const tab = tab0 === 'lote' ? 'siembras' : tab0
+  const tab = tab0 === 'lote' ? 'siembras' : tab0 === 'receta' ? 'recetas' : tab0
   const items = NAV[area] || NAV.cultivo
   useEffect(() => { subirPendientes() }, [])
   return (
