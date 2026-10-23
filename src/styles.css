@@ -170,3 +170,31 @@ img{max-width:100%}
 .vbtns button{border:1px solid rgba(255,255,255,.6);background:transparent;color:#fff;border-radius:999px;padding:9px 14px;font-weight:700;font-size:.9rem;min-height:42px}
 .vbtns button.on{background:var(--sun);border-color:var(--sun);color:#2A1D05}
 .vbtns button.neg{border-color:#f3a59a;color:#f3a59a}
+
+/* Agenda */
+.cal{display:flex;flex-direction:column;gap:10px}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.calh{text-align:center;font-size:.75rem;font-weight:700;color:var(--muted)}
+.calday{position:relative;aspect-ratio:1;border:1px solid transparent;border-radius:10px;font:inherit;font-weight:700;color:var(--fg);background:var(--bg);display:grid;place-items:center;padding:0;min-width:0}
+.calday small{position:absolute;top:2px;right:4px;font-size:.62rem;color:var(--soil)}
+.calday.libre{background:var(--leaf-soft);color:var(--leaf)}
+.calday.pocos{background:var(--sun-soft);color:var(--soil)}
+.calday.lleno{background:var(--line);color:var(--muted);text-decoration:line-through}
+.calday.cerrado,.calday.pasado{background:transparent;color:var(--muted);font-weight:400}
+.calday.hoy{border-color:var(--fg)}
+.calday.sel{outline:3px solid var(--sun);outline-offset:1px}
+.leyenda{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.78rem;color:var(--muted)}
+.leyenda span{display:inline-flex;align-items:center;gap:5px}
+.leyenda i{width:12px;height:12px;border-radius:4px;display:inline-block;border:1px solid var(--line)}
+.leyenda i.libre{background:var(--leaf-soft)}.leyenda i.pocos{background:var(--sun-soft)}.leyenda i.lleno{background:var(--line)}.leyenda i.cerrado{background:transparent}
+.turno{border-top:1px solid var(--line);padding-top:10px}
+.fila{background:none;border:0;border-bottom:1px solid var(--line);color:inherit;text-align:left;width:100%;font:inherit;align-items:center}
+.fila:last-child{border-bottom:0}
+.fila small{display:block;color:var(--muted);font-size:.85rem}
+.chip.est-pendiente{background:var(--sun-soft);color:var(--soil)}
+.chip.est-cancelada{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.chip.est-llego{background:var(--leaf);color:var(--bg)}
+.msg{white-space:pre-wrap;word-break:break-word;font-family:var(--f-body);font-size:.92rem;background:var(--bg);border-radius:12px;padding:10px 12px;margin:6px 0 0}
+.msg.corto{max-height:9.5em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 60%,transparent);mask-image:linear-gradient(#000 60%,transparent)}
+.seg.wrap{flex-wrap:wrap;overflow:visible}
+.btn.sun{background:var(--sun);color:#2A1D05}

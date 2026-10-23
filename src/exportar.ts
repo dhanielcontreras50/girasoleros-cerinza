@@ -28,6 +28,7 @@ export async function descargarExcel(d: D) {
     hoja('Paquetes', ['Receta', 'Gramos', 'Precio', 'Empaque', 'Etiqueta', 'Activo'], d.paquetes.map(p => [rn(p.recetaId), p.gramos, p.precio, p.empaque, p.etiqueta, p.activa ? 'Sí' : 'No'])),
     hoja('Producción tostadas', ['Fecha', 'Receta', 'Semilla g', 'Salió g', 'Empacado g', 'Semilla $', 'Ingredientes $', 'Empaques $', 'Etiquetas $', 'Indirectos $', 'Total $', 'Paquetes', 'Nota'], d.tandas.map(t => [t.fecha, rn(t.recetaId), t.semilla, t.salida, t.empacado, t.costos.semilla, t.costos.ingredientes, t.costos.empaques, t.costos.etiquetas, t.costos.indirectos, totalTanda(t), t.paquetes.map(x => `${x.unidades} × ${pn(x.refId)}`).join(', '), t.nota])),
     hoja('Ventas tostadas', ['Fecha', 'Paquete', 'Unidades', 'Precio', 'Total', 'Cliente'], d.tventas.map(v => [v.fecha, pn(v.refId), v.unidades, v.precio, v.unidades * v.precio, v.cliente])),
+    hoja('Reservas turistas', ['Fecha', 'Hora', 'Nombre', 'Teléfono', 'Personas', 'Anticipo', 'Estado', 'Nota'], d.reservas.map(r => [r.fecha, r.hora, r.nombre, r.telefono, r.personas, r.anticipo, r.estado, r.nota])),
     hoja('Gastos tostadas', ['Fecha', 'Categoría', 'Detalle', 'Valor'], d.tgastos.map(g => [g.fecha, g.categoria, g.detalle, g.valor]))
   ]
   const blob = await writeXlsxFile(hojas as never).toBlob()

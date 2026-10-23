@@ -45,7 +45,8 @@ export default defineConfig({
             options: { cacheName: 'fuentes', expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 } }
           },
           {
-            urlPattern: ({ url }) => url.hostname === 'firebasestorage.googleapis.com',
+            // Solo las fotos que se muestran; al compartir fotos se piden directo a la nube.
+            urlPattern: ({ url, request }) => url.hostname === 'firebasestorage.googleapis.com' && request.destination === 'image',
             handler: 'CacheFirst',
             options: { cacheName: 'fotos', expiration: { maxEntries: 2000, maxAgeSeconds: 60 * 60 * 24 * 365 }, cacheableResponse: { statuses: [0, 200] } }
           }

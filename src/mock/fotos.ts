@@ -8,3 +8,4 @@ export const subirPendientes = async () => {}
 export const useFotoLocal = () => undefined
 export const usePendientes = () => 2
 export async function borrarFoto(id: string) { borrar('fotos', id) }
+export const blobLocal = async (_id: string): Promise<Blob | undefined> => undefined

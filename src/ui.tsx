@@ -13,6 +13,7 @@ export const ICON: Record<string, ReactNode> = {
   siembras: <svg {...sv}><circle cx="12" cy="8" r="3" /><path d="M12 2v1M12 13v1M6 8H5M19 8h-1M7.8 3.8l.7.7M15.5 11.5l.7.7M7.8 12.2l.7-.7M15.5 4.5l.7-.7M12 14v8M12 18c-2-2-4-2-6-1M12 20c2-2 4-2 6-1" /></svg>,
   registrar: <svg {...sv} strokeWidth={2.4}><path d="M12 6v12M6 12h12" /></svg>,
   cuentas: <svg {...sv}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18M7 15h4" /></svg>,
+  agenda: <svg {...sv}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4M8 14h2M14 14h2M8 17h2" /></svg>,
   recetas: <svg {...sv}><path d="M7 3h10l-1 4H8z" /><path d="M8 7c-2 2-3 4-3 7a7 7 0 0 0 14 0c0-3-1-5-3-7" /></svg>
 }
 

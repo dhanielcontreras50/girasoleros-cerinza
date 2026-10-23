@@ -1,6 +1,6 @@
 import { useDatos } from '../datos'
 import { diaDe, ETAPAS, etapaActual, inicios, promInicio, TERMINADO, TODAS } from '../domain/etapas'
-import { dias, fcorta, flarga, hoy } from '../domain/fechas'
+import { dias, fcorta, flarga, hoy, iso } from '../domain/fechas'
 import type { Lote } from '../domain/tipos'
 import type { ConId } from '../db'
 import { ir } from '../ruta'
@@ -10,6 +10,7 @@ import { Kpis, Movimientos } from './comun'
 import type { Foto } from '../domain/tipos'
 import { Cuadricula, FotoImg, fotoFondo, portadaLote, Visor } from './Galeria'
 import { useState } from 'react'
+import { ProximasVisitas } from './Agenda'
 
 export function Diferencia({ v, prom: r, palabra = "" }: { v: number | null; prom: number | null; palabra?: string }) {
   if (v === null || r === null) return null
@@ -41,7 +42,8 @@ export function LoteCard({ l, lotes, temporada, fotos = [] }: { l: ConId<Lote>; 
 }
 
 export default function Inicio() {
-  const { lotes, temporadas, movs, fotos, listo } = useDatos()
+  const { lotes, temporadas, movs, fotos, reservas, listo } = useDatos()
+  const hayVisitas = reservas.some(r => r.fecha >= iso(hoy()) && (r.estado === 'pendiente' || r.estado === 'confirmada'))
   const [ver, setVer] = useState<number | null>(null)
   const fondo = fotoFondo(fotos)
   const mejores = fotos.filter(f => f.favorita).sort((a, b) => a.fecha === b.fecha ? (b.creado || 0) - (a.creado || 0) : a.fecha < b.fecha ? 1 : -1).slice(0, 6)
@@ -58,6 +60,7 @@ export default function Inicio() {
           : <div className="empty">Aún no hay lotes sembrados. Ve a <b>Siembras</b>, crea la temporada y agrega el lote con su fecha de siembra.
             <div style={{ marginTop: 10 }}><button className="btn small" onClick={() => ir('cultivo/siembras')}>Ir a Siembras</button></div></div>}
       </section>
+      {hayVisitas && <section className="stack"><div className="row between"><h2>Próximas visitas</h2><button className="link" onClick={() => ir('cultivo/agenda')}>Ver agenda</button></div><ProximasVisitas max={3} /></section>}
       {fotos.length > 0 && <section className="stack"><div className="row between"><h2>Mejores fotos</h2><button className="link" onClick={() => ir('cultivo/galeria')}>Ver galería</button></div>
         {mejores.length ? <div className="photos" style={{ marginTop: 0 }}><Cuadricula lista={mejores} onVer={setVer} /></div>
           : <div className="empty">Abre una foto y márcala con ☆ para que aparezca aquí. <button className="link" onClick={() => ir('cultivo/galeria')}>Ir a la galería</button></div>}

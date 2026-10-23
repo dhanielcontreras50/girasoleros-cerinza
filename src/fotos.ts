@@ -76,6 +76,9 @@ export function useFotoLocal(id: string, activa: boolean) {
   return url
 }
 
+/** La foto guardada en el celular, si aún no sube. */
+export async function blobLocal(id: string) { return (await get<Pendiente>(id, cola))?.blob }
+
 export async function quitarDeCola(id: string) { await del(id, cola); avisar() }
 
 /** Cuántas fotos faltan por subir. */

@@ -19,6 +19,7 @@ import TRegistrar from './pages/tostadas/Registrar'
 import TCuentas from './pages/tostadas/Cuentas'
 import Analisis from './pages/Analisis'
 import Galeria from './pages/Galeria'
+import Agenda from './pages/Agenda'
 
 function Login() {
   const [error, setError] = useState('')
@@ -59,7 +60,7 @@ function Menu() {
 }
 
 const NAV: Record<string, [string, string, string][]> = {
-  cultivo: [['inicio', 'Inicio', 'inicio'], ['siembras', 'Siembras', 'siembras'], ['registrar', 'Registrar', 'registrar'], ['cuentas', 'Cuentas', 'cuentas']],
+  cultivo: [['inicio', 'Inicio', 'inicio'], ['siembras', 'Siembras', 'siembras'], ['registrar', 'Registrar', 'registrar'], ['agenda', 'Agenda', 'agenda'], ['cuentas', 'Cuentas', 'cuentas']],
   tostadas: [['inicio', 'Inicio', 'inicio'], ['recetas', 'Recetas', 'recetas'], ['registrar', 'Registrar', 'registrar'], ['cuentas', 'Cuentas', 'cuentas']],
   analisis: [['cultivo', 'Cultivo', 'siembras'], ['tostadas', 'Semillas tostadas', 'recetas']]
 }
@@ -76,6 +77,7 @@ function Contenido({ r }: { r: string[] }) {
   if (area === 'analisis') return <Analisis key={tab} area={tab} />
   if (tab === 'siembras') return <Siembras />
   if (tab === 'galeria') return <Galeria />
+  if (tab === 'agenda') return <Agenda />
   if (tab === 'lote' && id) return <LoteVista id={id} />
   if (tab === 'registrar') return <Registrar key={r.join('/')} tipo0={id} lote0={extra} />
   if (tab === 'cuentas') return <Cuentas />
