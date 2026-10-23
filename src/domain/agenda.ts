@@ -3,13 +3,15 @@ import { hoy, iso, parse, plata, sumar } from './fechas'
 import type { AjustesAgenda, DiaEspecial, Lote, Reserva } from './tipos'
 
 export const AJUSTES_BASE: AjustesAgenda = {
-  dias: [6, 0], horas: ['08:00', '10:00', '14:00'], duracion: 2, cupo: 20, precio: 0, paquete: 'Entrada', mapa: '',
+  dias: [6, 0], horas: ['08:00', '10:00', '14:00'], duracion: 2, precio: 0, paquete: 'Entrada', mapa: '',
   recomendaciones: 'Te recomendamos ropa cómoda, zapatos cerrados, gorra y bloqueador.'
 }
 export const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
 type ConId<T> = T & { id: string }
-export type Turno = { hora: string; fin: string; ocupados: number; libres: number; reservas: ConId<Reserva>[] }
+/** Un turno queda ocupado con una reserva confirmada (o cuando ya llegaron): es un grupo por hora. */
+export type Turno = { hora: string; fin: string; ocupado: boolean; reservas: ConId<Reserva>[] }
+export const ocupa = (r: Reserva) => r.estado === 'confirmada' || r.estado === 'llego'
 export type EstadoDia = 'pasado' | 'cerrado' | 'libre' | 'pocos' | 'lleno'
 
 /** "14:00" → "2:00 p. m." */
@@ -28,14 +30,13 @@ export function abierto(fecha: string, a: AjustesAgenda, especiales: Record<stri
   return e ? e.abierto : a.dias.includes(parse(fecha).getDay())
 }
 
-/** Turnos del día con cupos ocupados. Incluye horas que no son de los turnos normales si alguien reservó a esa hora. */
+/** Turnos del día y si ya están ocupados. Incluye horas que no son de los turnos normales si alguien reservó a esa hora. */
 export function turnosDe(fecha: string, a: AjustesAgenda, reservas: ConId<Reserva>[]): Turno[] {
   const delDia = reservas.filter(r => r.fecha === fecha && cuenta(r))
   const horas = [...new Set([...a.horas, ...delDia.map(r => r.hora)])].sort()
   return horas.map(hora => {
     const rs = delDia.filter(r => r.hora === hora)
-    const ocupados = rs.reduce((s, r) => s + (r.personas || 0), 0)
-    return { hora, fin: sumarHoras(hora, a.duracion), ocupados, libres: Math.max(0, a.cupo - ocupados), reservas: rs }
+    return { hora, fin: sumarHoras(hora, a.duracion), ocupado: rs.some(ocupa), reservas: rs }
   })
 }
 
@@ -43,12 +44,12 @@ export function estadoDia(fecha: string, a: AjustesAgenda, especiales: Record<st
   if (fecha < iso(ref)) return 'pasado'
   if (!abierto(fecha, a, especiales)) return 'cerrado'
   const ts = turnosDe(fecha, a, reservas).filter(t => a.horas.includes(t.hora))
-  const libres = ts.reduce((s, t) => s + t.libres, 0), total = ts.length * a.cupo
+  const libres = ts.filter(t => !t.ocupado).length
   if (!libres) return 'lleno'
-  return libres <= total / 4 ? 'pocos' : 'libre'
+  return libres < ts.length ? 'pocos' : 'libre'
 }
 
-/** Próximos días abiertos con cupo, desde mañana si hoy ya pasó la última hora. */
+/** Próximos días abiertos con horas libres. */
 export function proximosLibres(a: AjustesAgenda, especiales: Record<string, DiaEspecial>, reservas: ConId<Reserva>[], ref = hoy(), ahora = new Date(), maxDias = 6, rango = 21) {
   const out: { fecha: string; turnos: Turno[] }[] = []
   // Hoy solo se ofrecen las horas que aún no han pasado.
@@ -56,7 +57,7 @@ export function proximosLibres(a: AjustesAgenda, especiales: Record<string, DiaE
   for (let i = 0; i < rango && out.length < maxDias; i++) {
     const f = iso(sumar(ref, i))
     if (!abierto(f, a, especiales)) continue
-    const ts = turnosDe(f, a, reservas).filter(t => a.horas.includes(t.hora) && t.libres > 0 && (f !== hoyIso || t.hora > ya))
+    const ts = turnosDe(f, a, reservas).filter(t => a.horas.includes(t.hora) && !t.ocupado && (f !== hoyIso || t.hora > ya))
     if (ts.length) out.push({ fecha: f, turnos: ts })
   }
   return out
@@ -89,11 +90,11 @@ export function mensajeDisponibilidad(a: AjustesAgenda, especiales: Record<strin
   if (libres.length) {
     l.push(`📅 Días y horarios disponibles (la visita dura ${a.duracion === 1 ? '1 hora' : a.duracion + ' horas'}):`)
     for (const d of libres) l.push(`• ${may(fDia(d.fecha))}: ${d.turnos.map(t => hora12(t.hora)).join(', ')}`)
-  } else l.push('📅 Por ahora no tenemos cupos en los próximos días. Escríbenos y te avisamos cuando abramos nuevas fechas.')
+  } else l.push('📅 Por ahora no tenemos horas libres en los próximos días. Escríbenos y te avisamos cuando abramos nuevas fechas.')
   if (a.precio) l.push('', `💵 Valor: ${plata(a.precio)} por persona.`)
   if (a.mapa) l.push('', `📍 Ubicación: ${a.mapa}`)
   if (a.recomendaciones.trim()) l.push('', a.recomendaciones.trim())
-  l.push('', 'Para separar tu cupo, respóndenos con el día, la hora y cuántas personas vienen.')
+  l.push('', 'Para separar tu hora, respóndenos con el día, la hora y cuántas personas vienen.')
   return l.join('\n')
 }
 

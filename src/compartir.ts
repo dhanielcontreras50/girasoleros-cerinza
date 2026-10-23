@@ -26,7 +26,7 @@ export async function compartir(texto: string, fotos: ConId<Foto>[]): Promise<'f
   await copiar(texto)
   if (!navigator.share) return 'copiado'
   let files: File[] = []
-  try { files = (await Promise.all(fotos.slice(0, 3).map(archivo))).filter((x): x is File => !!x) } catch { files = [] }
+  try { files = (await Promise.all(fotos.slice(0, 6).map(archivo))).filter((x): x is File => !!x) } catch { files = [] }
   try {
     if (files.length && navigator.canShare?.({ files })) { await navigator.share({ text: texto, files }); return 'fotos' }
     await navigator.share({ text: texto }); return 'texto'

@@ -3,7 +3,7 @@ import { AJUSTES_BASE, estadoDia, hora12, mensajeConfirmacion, mensajeDisponibil
 import { parse } from './fechas'
 import type { Reserva } from './tipos'
 
-const a = { ...AJUSTES_BASE, dias: [6, 0], horas: ['08:00', '10:00'], cupo: 10, precio: 10000, mapa: 'https://maps.app.goo.gl/x' }
+const a = { ...AJUSTES_BASE, dias: [6, 0], horas: ['08:00', '10:00'], precio: 10000, mapa: 'https://maps.app.goo.gl/x' }
 const r = (fecha: string, hora: string, personas: number, estado: Reserva['estado'] = 'confirmada') =>
   ({ id: fecha + hora + personas, fecha, hora, personas, nombre: 'Ana López', telefono: '', anticipo: 0, nota: '', estado })
 const ref = parse('2026-10-23') // viernes
@@ -15,13 +15,13 @@ it('formatea horas', () => {
   expect(sumarHoras('14:00', 2)).toBe('16:00')
 })
 
-it('cuenta cupos y estados del día', () => {
-  const rs = [r('2026-10-24', '08:00', 10), r('2026-10-24', '10:00', 4), r('2026-10-24', '10:00', 5, 'cancelada')]
+it('una reserva confirmada ocupa la hora', () => {
+  const rs = [r('2026-10-24', '08:00', 4), r('2026-10-24', '10:00', 4, 'pendiente'), r('2026-10-24', '10:00', 5, 'cancelada')]
   const ts = turnosDe('2026-10-24', a, rs)
-  expect(ts.map(t => t.libres)).toEqual([0, 6])
-  expect(estadoDia('2026-10-24', a, {}, rs, ref)).toBe('libre')
-  expect(estadoDia('2026-10-24', a, {}, [...rs, r('2026-10-24', '10:00', 2)], ref)).toBe('pocos')
-  expect(estadoDia('2026-10-24', a, {}, [...rs, r('2026-10-24', '10:00', 6)], ref)).toBe('lleno')
+  expect(ts.map(t => t.ocupado)).toEqual([true, false])
+  expect(estadoDia('2026-10-24', a, {}, [], ref)).toBe('libre')
+  expect(estadoDia('2026-10-24', a, {}, rs, ref)).toBe('pocos')
+  expect(estadoDia('2026-10-24', a, {}, [...rs, r('2026-10-24', '10:00', 2)], ref)).toBe('lleno')
   expect(estadoDia('2026-10-26', a, {}, [], ref)).toBe('cerrado') // lunes
   expect(estadoDia('2026-10-26', a, { '2026-10-26': { abierto: true, motivo: 'Festivo' } }, [], ref)).toBe('libre')
   expect(estadoDia('2026-10-25', a, { '2026-10-25': { abierto: false, motivo: 'Lluvia' } }, [], ref)).toBe('cerrado')
@@ -29,7 +29,7 @@ it('cuenta cupos y estados del día', () => {
 })
 
 it('arma el mensaje con los próximos días libres', () => {
-  const rs = [r('2026-10-24', '08:00', 10)]
+  const rs = [r('2026-10-24', '08:00', 2)]
   expect(proximosLibres(a, {}, rs, ref)[0]).toMatchObject({ fecha: '2026-10-24' })
   // el sábado a las 9 a. m. ya no se ofrece el turno de las 8
   const sab = parse('2026-10-24'), nueve = new Date(2026, 9, 24, 9, 0)

@@ -198,3 +198,7 @@ img{max-width:100%}
 .msg.corto{max-height:9.5em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 60%,transparent);mask-image:linear-gradient(#000 60%,transparent)}
 .seg.wrap{flex-wrap:wrap;overflow:visible}
 .btn.sun{background:var(--sun);color:#2A1D05}
+.escogidas{display:flex;gap:6px;overflow-x:auto}
+.escogidas img,.escogidas .ph{width:56px;height:56px;flex:none;object-fit:cover;border-radius:8px}
+.thumb.pick.on img{outline:3px solid var(--sun);outline-offset:-3px}
+.thumb .num{position:absolute;left:4px;top:4px;background:var(--sun);color:#2A1D05;border-radius:999px;min-width:24px;height:24px;display:grid;place-items:center;font-weight:800;font-size:.85rem}

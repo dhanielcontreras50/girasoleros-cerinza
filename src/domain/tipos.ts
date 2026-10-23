@@ -30,4 +30,6 @@ export type TGasto = { fecha: string; categoria: string; detalle: string; valor:
 export type Reserva = { fecha: string; hora: string; nombre: string; telefono: string; personas: number; anticipo: number; nota: string; estado: 'pendiente' | 'confirmada' | 'llego' | 'cancelada'; movId?: string }
 /** Día con horario distinto al normal: cerrado (lluvia, fumigación) o abierto aunque no sea día de visitas (festivo). */
 export type DiaEspecial = { abierto: boolean; motivo: string }
-export type AjustesAgenda = { dias: number[]; horas: string[]; duracion: number; cupo: number; precio: number; paquete: string; mapa: string; recomendaciones: string }
+export type AjustesAgenda = { dias: number[]; horas: string[]; duracion: number; cupo?: number; precio: number; paquete: string; mapa: string; recomendaciones: string
+  /** fotos escogidas para el saludo (si no hay, se usan las favoritas) y para la confirmación */
+  fotosSaludo?: string[]; fotoConfirmacion?: string | null }

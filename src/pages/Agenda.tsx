@@ -2,11 +2,12 @@ import { useMemo, useState } from 'react'
 import { compartir, copiar, whatsapp } from '../compartir'
 import { actualizar, borrar, crear, crearConId, type ConId } from '../db'
 import { useDatos } from '../datos'
-import { AJUSTES_BASE, abierto, DIAS_SEMANA, estadoDia, hora12, loteVitrina, mensajeConfirmacion, mensajeDisponibilidad, sumarHoras, telWa, turnosDe, type EstadoDia } from '../domain/agenda'
+import { AJUSTES_BASE, abierto, ocupa, DIAS_SEMANA, estadoDia, hora12, loteVitrina, mensajeConfirmacion, mensajeDisponibilidad, sumarHoras, telWa, turnosDe, type EstadoDia } from '../domain/agenda'
 import { PAQUETES } from '../domain/cuentas'
 import { hoy, iso, parse, plata } from '../domain/fechas'
 import type { AjustesAgenda, DiaEspecial, Foto, Reserva } from '../domain/tipos'
 import { Confirmar, Sheet, toast, valor } from '../ui'
+import { FotoImg } from './Galeria'
 
 type R = ConId<Reserva>
 const ESTADOS: Record<Reserva['estado'], string> = { pendiente: 'Por confirmar', confirmada: 'Confirmada', llego: 'Llegaron', cancelada: 'Cancelada' }
@@ -16,7 +17,8 @@ const fDia = (f: string) => { const s = parse(f).toLocaleDateString('es-CO', { w
 export function useAgenda() {
   const d = useDatos()
   const guardado = d.ajustes.find(x => x.id === 'agenda')
-  const a: AjustesAgenda = { ...AJUSTES_BASE, ...(guardado || {}) }
+  const { id: _id, creado: _c, ...g } = guardado || ({} as Partial<ConId<AjustesAgenda>>)
+  const a: AjustesAgenda = { ...AJUSTES_BASE, ...g }
   const esp = useMemo(() => Object.fromEntries(d.especiales.map(e => [e.id, e])) as Record<string, DiaEspecial>, [d.especiales])
   return { a, configurada: !!guardado, esp }
 }
@@ -27,6 +29,41 @@ function fotosParaTuristas(fotos: ConId<Foto>[], loteId?: string) {
   const favs = fotos.filter(f => f.favorita)
   const lista = [...rec(favs.filter(f => f.etapa === 'floracion')), ...rec(favs.filter(f => f.etapa !== 'floracion')), ...rec(fotos.filter(f => f.loteId === loteId))]
   return [...new Map(lista.map(f => [f.id, f])).values()].slice(0, 3)
+}
+
+const guardarAjustes = (a: AjustesAgenda, cambios: Partial<AjustesAgenda>) => crearConId('ajustes', 'agenda', { ...a, ...cambios })
+export const MAX_FOTOS = 6
+
+/** Para escoger fotos: favoritas primero. Con max=1 se escoge una sola. */
+function FotoPicker({ titulo, sel, max, onGuardar, onCerrar }: { titulo: string; sel: string[]; max: number; onGuardar: (ids: string[]) => void; onCerrar: () => void }) {
+  const { fotos, lotes } = useDatos()
+  const [ids, setIds] = useState(sel.filter(id => fotos.some(f => f.id === id)))
+  const orden = [...fotos].sort((x, y) => (+!!y.favorita - +!!x.favorita) || (y.creado || 0) - (x.creado || 0))
+  const tocar = (id: string) => {
+    if (max === 1) { setIds(ids[0] === id ? [] : [id]); return }
+    if (ids.includes(id)) setIds(ids.filter(x => x !== id))
+    else if (ids.length < max) setIds([...ids, id])
+    else toast(`Máximo ${max} fotos`)
+  }
+  return (
+    <div className="sheet" onClick={e => { if (e.target === e.currentTarget) onCerrar() }}>
+      <div role="dialog" aria-modal="true" aria-label={titulo} className="stack">
+        <h2 style={{ margin: 0 }}>{titulo}</h2>
+        <small className="muted">{max === 1 ? 'Toca la foto que quieres mandar.' : `Toca hasta ${max} fotos. Se mandan en el orden en que las escojas.`} Las ★ son tus favoritas.</small>
+        {orden.length ? <div className="photos" style={{ marginTop: 0 }}>{orden.map(f => {
+          const k = ids.indexOf(f.id), l = lotes.find(x => x.id === f.loteId)
+          return <button key={f.id} className={'thumb pick' + (k >= 0 ? ' on' : '')} aria-pressed={k >= 0} aria-label={`Foto de ${l?.nombre || ''} del ${f.fecha}`} onClick={() => tocar(f.id)}>
+            <FotoImg f={f} />{f.favorita && <span className="star">★</span>}{k >= 0 && <span className="num">{max === 1 ? '✓' : k + 1}</span>}</button>
+        })}</div> : <div className="empty">Todavía no hay fotos. Tómalas desde cada etapa del lote, en Siembras.</div>}
+        <div className="two"><button className="btn ghost" onClick={onCerrar}>Cancelar</button><button className="btn" onClick={() => { onGuardar(ids); onCerrar() }}>Listo</button></div>
+      </div>
+    </div>
+  )
+}
+
+/** Fila de miniaturas de las fotos escogidas. */
+function Escogidas({ lista }: { lista: ConId<Foto>[] }) {
+  return <div className="escogidas">{lista.map(f => <FotoImg key={f.id} f={f} />)}</div>
 }
 
 async function enviar(texto: string, fotos: ConId<Foto>[]) {
@@ -52,11 +89,11 @@ function Calendario({ mes, setMes, sel, setSel, estado, nRes }: { mes: Date; set
         {Array.from({ length: vacios }, (_, i) => <span key={'v' + i} />)}
         {Array.from({ length: n }, (_, i) => {
           const f = iso(new Date(y, m, i + 1)), e = estado(f), k = nRes(f)
-          return <button key={f} className={`calday ${e}${f === sel ? ' sel' : ''}${f === hoyIso ? ' hoy' : ''}`} aria-pressed={f === sel} aria-label={`${fDia(f)}: ${ { pasado: 'pasado', cerrado: 'cerrado', libre: 'con cupo', pocos: 'pocos cupos', lleno: 'lleno' }[e]}${k ? `, ${k} reservas` : ''}`} onClick={() => setSel(f)}>
+          return <button key={f} className={`calday ${e}${f === sel ? ' sel' : ''}${f === hoyIso ? ' hoy' : ''}`} aria-pressed={f === sel} aria-label={`${fDia(f)}: ${ { pasado: 'pasado', cerrado: 'cerrado', libre: 'todas las horas libres', pocos: 'algunas horas libres', lleno: 'todo reservado' }[e]}${k ? `, ${k} reservas` : ''}`} onClick={() => setSel(f)}>
             {i + 1}{k > 0 && <small>{k}</small>}</button>
         })}
       </div>
-      <div className="leyenda"><span><i className="libre" />Con cupo</span><span><i className="pocos" />Pocos cupos</span><span><i className="lleno" />Lleno</span><span><i className="cerrado" />Cerrado</span></div>
+      <div className="leyenda"><span><i className="libre" />Libre</span><span><i className="pocos" />Algunas horas libres</span><span><i className="lleno" />Todo reservado</span><span><i className="cerrado" />Cerrado</span></div>
     </div>
   )
 }
@@ -69,7 +106,7 @@ function AjustesSheet({ a, onCerrar }: { a: AjustesAgenda; onCerrar: () => void 
     <Sheet titulo="Horarios y mensaje" onCerrar={onCerrar} onGuardar={f => {
       if (!horas.length) { toast('Agrega al menos una hora'); return }
       crearConId('ajustes', 'agenda', {
-        dias, horas: [...horas].sort(), duracion: +valor(f, 'duracion') || 2, cupo: +valor(f, 'cupo') || 1, precio: +valor(f, 'precio') || 0,
+        ...a, dias, horas: [...horas].sort(), duracion: +valor(f, 'duracion') || 2, precio: +valor(f, 'precio') || 0,
         paquete: valor(f, 'paquete'), mapa: valor(f, 'mapa').trim(), recomendaciones: valor(f, 'reco')
       } satisfies AjustesAgenda)
       onCerrar(); toast('Horarios guardados')
@@ -81,8 +118,8 @@ function AjustesSheet({ a, onCerrar }: { a: AjustesAgenda; onCerrar: () => void 
         <button type="button" key={h} className="on" aria-label={`Quitar ${hora12(h)}`} onClick={() => setHoras(horas.filter(x => x !== h))}>{hora12(h)} ✕</button>)}</div>
         <div className="row" style={{ marginTop: 6 }}><input type="time" value={nueva} onChange={e => setNueva(e.target.value)} aria-label="Nueva hora" />
           <button type="button" className="btn small ghost" onClick={() => { if (nueva && !horas.includes(nueva)) setHoras([...horas, nueva]); setNueva('') }}>Agregar</button></div></div>
-      <div className="two"><label>Duración (horas)<input name="duracion" type="number" min="0.5" step="0.5" defaultValue={a.duracion} required /></label>
-        <label>Cupo por turno<input name="cupo" type="number" min="1" inputMode="numeric" defaultValue={a.cupo} required /></label></div>
+      <label>Duración de la visita (horas)<input name="duracion" type="number" min="0.5" step="0.5" defaultValue={a.duracion} required />
+        <small className="muted">Cada hora de entrada es para un solo grupo: al confirmar una reserva, esa hora se bloquea.</small></label>
       <div className="two"><label>Valor por persona<input name="precio" type="number" min="0" inputMode="numeric" defaultValue={a.precio || ''} placeholder="0" /></label>
         <label>Paquete<select name="paquete" defaultValue={a.paquete}>{PAQUETES.map(p => <option key={p}>{p}</option>)}</select></label></div>
       <label>Enlace de ubicación<input name="mapa" type="url" defaultValue={a.mapa} placeholder="https://maps.app.goo.gl/…" />
@@ -93,18 +130,24 @@ function AjustesSheet({ a, onCerrar }: { a: AjustesAgenda; onCerrar: () => void 
 }
 
 function ReservaSheet({ r, fecha, hora, a, onCerrar }: { r?: R; fecha: string; hora?: string; a: AjustesAgenda; onCerrar: (id?: string) => void }) {
+  const { reservas } = useDatos()
   const horas = [...new Set([...a.horas, ...(r ? [r.hora] : [])])].sort()
+  const [dia, setDia] = useState(r?.fecha || fecha)
+  // Horas que ya tienen otra reserva confirmada ese día
+  const tomadas = new Set(reservas.filter(x => x.id !== r?.id && x.fecha === dia && ocupa(x)).map(x => x.hora))
+  const hora0 = [r?.hora, hora, ...horas].find(h => h && !tomadas.has(h)) || horas[0]
   return (
     <Sheet titulo={r ? 'Editar reserva' : 'Nueva reserva'} onCerrar={() => onCerrar()} onGuardar={f => {
       const d = { fecha: valor(f, 'fecha'), hora: valor(f, 'hora'), nombre: valor(f, 'nombre').trim(), telefono: valor(f, 'tel').trim(), personas: +valor(f, 'personas') || 1, anticipo: +valor(f, 'anticipo') || 0, nota: valor(f, 'nota'), estado: valor(f, 'estado') as Reserva['estado'] }
+      if (ocupa(d) && tomadas.has(d.hora)) { toast(`Las ${hora12(d.hora)} ya están reservadas ese día`); return }
       if (r) { actualizar('reservas', r.id, d); onCerrar(r.id) } else onCerrar(crear('reservas', d))
       toast('Reserva guardada')
     }}>
       <label>Nombre<input name="nombre" defaultValue={r?.nombre} required placeholder="Quién reserva" /></label>
       <div className="two"><label>Celular<input name="tel" type="tel" inputMode="tel" defaultValue={r?.telefono} placeholder="310 000 0000" /></label>
         <label>Personas<input name="personas" type="number" min="1" inputMode="numeric" defaultValue={r?.personas || ''} required /></label></div>
-      <div className="two"><label>Día<input name="fecha" type="date" defaultValue={r?.fecha || fecha} required /></label>
-        <label>Hora<select name="hora" defaultValue={r?.hora || hora || horas[0]}>{horas.map(h => <option key={h} value={h}>{hora12(h)}</option>)}</select></label></div>
+      <div className="two"><label>Día<input name="fecha" type="date" value={dia} onChange={e => setDia(e.target.value)} required /></label>
+        <label>Hora<select name="hora" key={dia} defaultValue={hora0}>{horas.map(h => <option key={h} value={h} disabled={tomadas.has(h)}>{hora12(h)}{tomadas.has(h) ? ' · reservada' : ''}</option>)}</select></label></div>
       <div className="two"><label>Anticipo recibido<input name="anticipo" type="number" min="0" inputMode="numeric" defaultValue={r?.anticipo || ''} placeholder="0" /></label>
         <label>Estado<select name="estado" defaultValue={r?.estado === 'llego' ? 'llego' : r?.estado || 'confirmada'}>{(['pendiente', 'confirmada', 'cancelada'] as const).map(e => <option key={e} value={e}>{ESTADOS[e]}</option>)}{r?.estado === 'llego' && <option value="llego">Llegaron</option>}</select></label></div>
       <label>Nota (opcional)<input name="nota" defaultValue={r?.nota} placeholder="Ej: viene con niños, pidió picnic" /></label>
@@ -135,8 +178,11 @@ function LlegaronSheet({ r, a, onCerrar }: { r: R; a: AjustesAgenda; onCerrar: (
 }
 
 function ReservaVista({ r, a, onCerrar, onEditar, onLlegaron }: { r: R; a: AjustesAgenda; onCerrar: () => void; onEditar: () => void; onLlegaron: () => void }) {
+  const { fotos } = useDatos()
   const msg = mensajeConfirmacion(r, a), tel = telWa(r.telefono)
   const [seguro, setSeguro] = useState(false)
+  const [escoger, setEscoger] = useState(false)
+  const foto = fotos.find(f => f.id === a.fotoConfirmacion)
   return (
     <div className="sheet" onClick={e => { if (e.target === e.currentTarget) onCerrar() }}>
       <div role="dialog" aria-modal="true" aria-label="Reserva" className="stack">
@@ -144,11 +190,15 @@ function ReservaVista({ r, a, onCerrar, onEditar, onLlegaron }: { r: R; a: Ajust
         <div className="muted">{fDia(r.fecha)} · {hora12(r.hora)} a {hora12(sumarHoras(r.hora, a.duracion))} · {r.personas} {r.personas === 1 ? 'persona' : 'personas'}{r.anticipo ? ` · anticipo ${plata(r.anticipo)}` : ''}{r.telefono ? ` · ${r.telefono}` : ''}</div>
         {r.nota && <div className="note">{r.nota}</div>}
         <div><b>Mensaje de confirmación</b><pre className="msg">{msg}</pre></div>
+        <div className="row between"><div className="row">{foto ? <Escogidas lista={[foto]} /> : null}<small className="muted">{foto ? 'Va con esta foto' : 'Sin foto'}</small></div>
+          <button className="link" onClick={() => setEscoger(true)}>{foto ? 'Cambiar foto' : 'Escoger foto'}</button></div>
         <div className="two">
           <button className="btn ghost" onClick={() => copiar(msg).then(() => toast('Mensaje copiado'))}>Copiar</button>
-          {tel ? <a className="btn" href={whatsapp(tel, msg)} target="_blank" rel="noreferrer" style={{ textAlign: 'center', textDecoration: 'none' }}>Enviar por WhatsApp</a>
-            : <button className="btn" onClick={() => enviar(msg, [])}>Compartir</button>}
+          {foto || !tel ? <button className="btn" onClick={() => enviar(msg, foto ? [foto] : [])}>{foto ? 'Compartir con foto' : 'Compartir'}</button>
+            : <a className="btn" href={whatsapp(tel, msg)} target="_blank" rel="noreferrer" style={{ textAlign: 'center', textDecoration: 'none' }}>Enviar por WhatsApp</a>}
         </div>
+        {foto && tel && <a className="link" href={whatsapp(tel, msg)} target="_blank" rel="noreferrer" style={{ alignSelf: 'flex-start' }}>Abrir el chat de {r.nombre.split(' ')[0]} en WhatsApp (solo texto)</a>}
+        {escoger && <FotoPicker titulo="Foto para la confirmación" max={1} sel={a.fotoConfirmacion ? [a.fotoConfirmacion] : []} onCerrar={() => setEscoger(false)} onGuardar={ids => { guardarAjustes(a, { fotoConfirmacion: ids[0] || null }); toast(ids[0] ? 'Foto guardada para las confirmaciones' : 'Confirmación sin foto') }} />}
         {r.estado !== 'llego' && r.estado !== 'cancelada' && <button className="btn full sun" onClick={onLlegaron}>✓ Llegaron</button>}
         {r.estado === 'llego' && <div className="row between"><small className="muted">Ya está en Cuentas como ingreso de turistas.</small>
           <button className="link" onClick={() => { if (r.movId) borrar('movs', r.movId); actualizar('reservas', r.id, { estado: 'confirmada', movId: null }); toast('Llegada deshecha') }}>Deshacer</button></div>}
@@ -214,7 +264,9 @@ export default function Agenda() {
 
   const msg = mensajeDisponibilidad(a, esp, reservas, lotes)
   const vit = loteVitrina(lotes)
-  const paraEnviar = fotosParaTuristas(fotos, vit?.l.id)
+  const auto = a.fotosSaludo === undefined
+  const paraEnviar = auto ? fotosParaTuristas(fotos, vit?.l.id) : a.fotosSaludo!.map(id => fotos.find(f => f.id === id)).filter((f): f is ConId<Foto> => !!f)
+  const [escoger, setEscoger] = useState(false)
   const estado = (f: string) => estadoDia(f, a, esp, reservas)
   const nRes = (f: string) => reservas.filter(r => r.fecha === f && r.estado !== 'cancelada').length
   const ab = abierto(sel, a, esp), especial = esp[sel], pasado = sel < iso(hoy())
@@ -226,7 +278,7 @@ export default function Agenda() {
   return (
     <div className="stack-lg">
       <div className="top"><h1>Mi Agenda</h1><button className="btn small ghost" onClick={() => setAjustes(true)}>Horarios</button></div>
-      {!configurada && <div className="empty">Empieza poniendo tus días y horas de visita, el cupo por turno, el valor por persona y el enlace de ubicación.
+      {!configurada && <div className="empty">Empieza poniendo tus días y horas de visita, el valor por persona y el enlace de ubicación.
         <div style={{ marginTop: 10 }}><button className="btn small" onClick={() => setAjustes(true)}>Poner horarios</button></div></div>}
 
       <section className="stack"><h2>Mensaje para turistas</h2>
@@ -237,7 +289,10 @@ export default function Agenda() {
             <button className="btn ghost" onClick={() => copiar(msg).then(() => toast('Mensaje copiado'))}>Copiar</button>
             <button className="btn" onClick={() => enviar(msg, paraEnviar)}>{paraEnviar.length ? `Compartir con ${paraEnviar.length} ${paraEnviar.length === 1 ? 'foto' : 'fotos'}` : 'Compartir'}</button>
           </div>
-          {!paraEnviar.length && <small className="muted">Marca con ☆ tus mejores fotos en la Galería para mandarlas con el mensaje.</small>}
+          <div className="row between"><b style={{ fontSize: '.92rem' }}>Fotos que van con el mensaje</b><button className="link" onClick={() => setEscoger(true)}>Escoger fotos</button></div>
+          {paraEnviar.length ? <Escogidas lista={paraEnviar} /> : <small className="muted">Sin fotos. Toca "Escoger fotos" para agregarlas.</small>}
+          {auto && paraEnviar.length > 0 && <small className="muted">Por ahora van tus favoritas automáticamente.</small>}
+          {escoger && <FotoPicker titulo="Fotos para el saludo" max={MAX_FOTOS} sel={paraEnviar.map(f => f.id)} onCerrar={() => setEscoger(false)} onGuardar={ids => { guardarAjustes(a, { fotosSaludo: ids }); toast(ids.length ? `${ids.length} ${ids.length === 1 ? 'foto lista' : 'fotos listas'} para el saludo` : 'El saludo va sin fotos') }} />}
         </div>
       </section>
 
@@ -252,9 +307,9 @@ export default function Agenda() {
           </div>
           {(ab || turnos.some(t => t.reservas.length)) && turnos.map(t => (
             <div key={t.hora} className="turno">
-              <div className="row between"><div><b>{hora12(t.hora)} – {hora12(t.fin)}</b><div className="muted" style={{ fontSize: '.85rem' }}>{t.ocupados} de {a.cupo} cupos{t.libres === 0 ? ' · lleno' : ''}</div></div>
-                {ab && !pasado && <button className="btn small ghost" onClick={() => setNueva(t.hora)}>+ Reserva</button>}</div>
-              <div className="bar" style={{ marginTop: 6 }}><i style={{ width: Math.min(100, t.ocupados / a.cupo * 100) + '%' }} /></div>
+              <div className="row between"><div><b>{hora12(t.hora)} – {hora12(t.fin)}</b><div className="muted" style={{ fontSize: '.85rem' }}>{t.ocupado ? 'Reservada' : t.reservas.length ? 'Libre · hay reservas por confirmar' : 'Libre'}</div></div>
+                {t.ocupado ? <span className="chip est-confirmada">Reservada</span>
+                  : ab && !pasado && <button className="btn small ghost" onClick={() => setNueva(t.hora)}>+ Reserva</button>}</div>
               {t.reservas.map(x => <ResFila key={x.id} r={x} onClick={() => { setVer(x.id); setModo('') }} />)}
             </div>))}
           {canceladas.map(x => <ResFila key={x.id} r={x} onClick={() => { setVer(x.id); setModo('') }} />)}
