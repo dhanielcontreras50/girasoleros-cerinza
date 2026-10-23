@@ -18,6 +18,7 @@ import RecetaVista from './pages/tostadas/Receta'
 import TRegistrar from './pages/tostadas/Registrar'
 import TCuentas from './pages/tostadas/Cuentas'
 import Analisis from './pages/Analisis'
+import Galeria from './pages/Galeria'
 
 function Login() {
   const [error, setError] = useState('')
@@ -74,6 +75,7 @@ function Contenido({ r }: { r: string[] }) {
   }
   if (area === 'analisis') return <Analisis key={tab} area={tab} />
   if (tab === 'siembras') return <Siembras />
+  if (tab === 'galeria') return <Galeria />
   if (tab === 'lote' && id) return <LoteVista id={id} />
   if (tab === 'registrar') return <Registrar key={r.join('/')} tipo0={id} lote0={extra} />
   if (tab === 'cuentas') return <Cuentas />
@@ -83,7 +85,7 @@ function Contenido({ r }: { r: string[] }) {
 function Shell() {
   const r = useRuta()
   const [area, tab0] = r
-  const tab = tab0 === 'lote' ? 'siembras' : tab0 === 'receta' ? 'recetas' : tab0
+  const tab = tab0 === 'lote' ? 'siembras' : tab0 === 'galeria' ? 'inicio' : tab0 === 'receta' ? 'recetas' : tab0
   const items = NAV[area] || NAV.cultivo
   useEffect(() => { subirPendientes() }, [])
   return (

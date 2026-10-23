@@ -1,30 +1,22 @@
 import { useState } from 'react'
 import { useAuth } from '../auth'
-import { actualizar, borrar, crear, type ConId } from '../db'
+import { actualizar, borrar, crear } from '../db'
 import { useDatos } from '../datos'
 import { diaDe, duracion, ETAPAS, etapaActual, inicios, promDuracion, promInicio, TODAS } from '../domain/etapas'
 import { fcorta, flarga, hoy, iso } from '../domain/fechas'
-import type { Foto } from '../domain/tipos'
-import { agregarFotos, borrarFoto, useFotoLocal } from '../fotos'
+import { agregarFotos, borrarFoto } from '../fotos'
+import { Cuadricula, FotoImg, portadaLote, Visor } from './Galeria'
 import { ir } from '../ruta'
 import { Confirmar, Sheet, toast, valor } from '../ui'
 import { Diferencia } from './Inicio'
 import { Kpis, Movimientos } from './comun'
 import { totales } from '../domain/cuentas'
 
-function Miniatura({ f, onVer }: { f: ConId<Foto>; onVer: (src: string) => void }) {
-  const local = useFotoLocal(f.id, f.estado === 'pendiente' || !f.url)
-  const src = f.url || local
-  if (!src) return <div className="addph" style={{ cursor: 'default' }}>…</div>
-  return <button className={f.estado === 'pendiente' ? 'pend' : ''} style={{ padding: 0, border: 0, background: 'none' }} onClick={() => onVer(src)}>
-    <img src={src} alt={`Foto del ${fcorta(f.fecha)}`} loading="lazy" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 10 }} /></button>
-}
-
 export default function LoteVista({ id }: { id: string }) {
   const { lotes, temporadas, notas, fotos, labores, cosechas, movs, listo } = useDatos()
   const { user } = useAuth()
   const [open, setOpen] = useState<string | null>(null)
-  const [ver, setVer] = useState<{ src: string; f: ConId<Foto> } | null>(null)
+  const [ver, setVer] = useState<{ etapa: string; i: number } | null>(null)
   const [editar, setEditar] = useState(false)
   const [borrarLote, setBorrarLote] = useState(false)
   const [borrarItem, setBorrarItem] = useState<{ col: string; id: string; txt: string } | null>(null)
@@ -38,6 +30,8 @@ export default function LoteVista({ id }: { id: string }) {
   const sumC = (p: string) => cos.filter(c => c.producto === p).reduce((a, c) => a + c.cantidad, 0)
   const kgSem = sumC('Semilla')
   const movsL = movs.filter(m => m.loteId === l.id)
+  const portada = portadaLote(l, fotos)
+  const fotosDe = (k: string) => fotos.filter(f => f.loteId === l.id && f.etapa === k).sort((a, b) => (a.creado || 0) - (b.creado || 0))
   const abierta = open ?? TODAS[Math.max(0, Math.min(i, TODAS.length - 1))].k
 
   const subir = async (etapa: string, files: FileList | null) => {
@@ -51,6 +45,7 @@ export default function LoteVista({ id }: { id: string }) {
     <div className="stack-lg">
       <div>
         <button className="back" onClick={() => ir('cultivo/siembras')}>← Siembras</button>
+        {portada && <FotoImg f={portada} alt={`Portada de ${l.nombre}`} className="cover" />}
         <div className="eyebrow">{t ? `${t.nombre} ${t.anio}` : ''}</div>
         <div className="row between"><h1>{l.nombre}</h1><button className="btn small ghost" onClick={() => setEditar(true)}>Editar</button></div>
         <div className="muted">{l.variedad} · {(l.area || 0).toLocaleString('es-CO')} m² · sembrado {flarga(l.fechaSiembra)} · día {Math.max(d, 0)}</div>
@@ -59,7 +54,7 @@ export default function LoteVista({ id }: { id: string }) {
         <div><h2>Etapas, notas y fotos</h2><p className="muted" style={{ margin: '4px 0 0', fontSize: '.88rem' }}>Toca una etapa para poner la fecha en que de verdad empezó. Las siguientes se recalculan solas.</p></div>
         <div className="timeline">{TODAS.map((e, k) => {
           const s = st[k], cls = k < i ? 'past' : k === i ? 'now' : ''
-          const fs = fotos.filter(f => f.loteId === l.id && f.etapa === e.k).sort((a, b) => (a.creado || 0) - (b.creado || 0))
+          const fs = fotosDe(e.k)
           const ns = notas.filter(n => n.loteId === l.id && n.etapa === e.k).sort((a, b) => a.fecha < b.fecha ? -1 : 1)
           const isOpen = abierta === e.k
           const pr = k > 0 ? promInicio(lotes, k, l.id) : null
@@ -94,7 +89,7 @@ export default function LoteVista({ id }: { id: string }) {
                   <button className="btn small ghost" type="submit">Añadir nota</button>
                 </form>
                 <div className="photos" style={{ marginTop: 0 }}>
-                  {fs.map(f => <Miniatura key={f.id} f={f} onVer={src => setVer({ src, f })} />)}
+                  <Cuadricula lista={fs} onVer={i => setVer({ etapa: e.k, i })} />
                   <label className="addph">📷 Tomar foto<input type="file" accept="image/*" capture="environment" onChange={ev => { subir(e.k, ev.target.files); ev.target.value = '' }} /></label>
                   <label className="addph">+ Desde galería<input type="file" accept="image/*" multiple onChange={ev => { subir(e.k, ev.target.files); ev.target.value = '' }} /></label>
                 </div>
@@ -111,11 +106,7 @@ export default function LoteVista({ id }: { id: string }) {
         <Movimientos movs={movsL} vacio="Sin ingresos ni gastos en este lote." /></section>
       {borrarItem && <Confirmar titulo="¿Borrar este registro?" texto={borrarItem.txt + '.'} si="Borrar" onCerrar={() => setBorrarItem(null)} onSi={() => { borrar(borrarItem.col, borrarItem.id); toast('Registro borrado') }} />}
 
-      {ver && <div className="viewer" onClick={e => { if (e.target === e.currentTarget) setVer(null) }}><div className="stack" style={{ alignItems: 'center' }}>
-        <img src={ver.src} alt="" />
-        <div className="row"><button className="btn ghost small" style={{ color: '#fff', borderColor: '#fff' }} onClick={() => setVer(null)}>Cerrar</button>
-          <button className="btn small" onClick={() => { borrarFoto(ver.f.id, ver.f.path, ver.f.estado === 'subida'); setVer(null); toast('Foto borrada') }}>Borrar foto</button></div>
-      </div></div>}
+      {ver && <Visor lista={fotosDe(ver.etapa)} inicio={ver.i} onCerrar={() => setVer(null)} />}
 
       {editar && <Sheet titulo="Editar lote" onCerrar={() => setEditar(false)} onGuardar={f => {
         actualizar('lotes', l.id, { nombre: valor(f, 'nombre'), area: +valor(f, 'area'), variedad: valor(f, 'variedad'), temporadaId: valor(f, 'temp') }); setEditar(false); toast('Lote guardado')

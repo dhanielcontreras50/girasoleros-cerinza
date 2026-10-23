@@ -5,6 +5,7 @@ import { ETAPAS, etapaActual, TERMINADO } from '../domain/etapas'
 import { fcorta, hoy, iso } from '../domain/fechas'
 import { ir } from '../ruta'
 import { Sheet, toast, valor } from '../ui'
+import { FotoImg, portadaLote } from './Galeria'
 
 export default function Siembras() {
   const { temporadas, lotes, fotos, listo } = useDatos()
@@ -13,7 +14,7 @@ export default function Siembras() {
   const y0 = hoy().getFullYear()
   return (
     <div className="stack-lg">
-      <div className="top"><h1>Siembras</h1><button className="btn small" onClick={() => setSheet({ tipo: 'temp' })}>+ Temporada</button></div>
+      <div className="top"><h1>Siembras</h1><div className="row"><button className="btn small ghost" onClick={() => ir('cultivo/galeria')}>Galería</button><button className="btn small" onClick={() => setSheet({ tipo: 'temp' })}>+ Temporada</button></div></div>
       {listo && !temporadas.length && <div className="empty">Empieza creando la temporada de siembra, por ejemplo "Temporada 2" de {y0}. Dentro de ella agregas uno o varios lotes.</div>}
       {years.map(y => (
         <section className="stack" key={y}><div className="year">{y}</div>
@@ -25,8 +26,8 @@ export default function Siembras() {
                 <div className="row between"><div><h3>{t.nombre}</h3><div className="muted" style={{ fontSize: '.88rem' }}>Desde {fcorta(t.inicio)} · {ls.length} {ls.length === 1 ? 'lote' : 'lotes'} · {area.toLocaleString('es-CO')} m²</div></div>
                   <button className="btn small ghost" onClick={() => setSheet({ tipo: 'lote', t: t.id })}>+ Lote</button></div>
                 <div className="lotes">{ls.length ? ls.map(l => {
-                  const i = etapaActual(l), nf = fotos.filter(f => f.loteId === l.id).length
-                  return <button className="lotebtn" key={l.id} onClick={() => ir('cultivo/lote/' + l.id)}><div><b>{l.nombre}</b><div className="muted" style={{ fontSize: '.85rem' }}>Sembrado {fcorta(l.fechaSiembra)} · {nf} fotos</div></div>
+                  const i = etapaActual(l), nf = fotos.filter(f => f.loteId === l.id).length, p = portadaLote(l, fotos)
+                  return <button className="lotebtn" key={l.id} onClick={() => ir('cultivo/lote/' + l.id)}>{p && <FotoImg f={p} className="mini" />}<div style={{ flex: 1 }}><b>{l.nombre}</b><div className="muted" style={{ fontSize: '.85rem' }}>Sembrado {fcorta(l.fechaSiembra)} · {nf} fotos</div></div>
                     <span className={'chip ' + (i >= TERMINADO ? 'done' : i === 4 ? 'sun' : '')}>{i < 0 ? 'Por sembrar' : i >= TERMINADO ? 'Terminado' : ETAPAS[i].n.split(' ')[0]}</span></button>
                 }) : <div className="empty">Sin lotes todavía.</div>}</div>
               </div>)
