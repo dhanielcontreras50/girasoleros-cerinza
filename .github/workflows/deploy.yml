@@ -40,3 +40,20 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+  # Guarda la versión publicada como etiqueta en git (v1.10, v1.11…), tomada de src/version.ts
+  version:
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: |
+          V=$(sed -n "s/.*VERSION = '\(.*\)'.*/\1/p" src/version.ts)
+          if git rev-parse "v$V" >/dev/null 2>&1; then echo "v$V ya existe"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$V" -m "Versión $V"
+          git push origin "v$V"
