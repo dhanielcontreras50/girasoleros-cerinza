@@ -10,6 +10,7 @@ import { Kpis, Movimientos } from './comun'
 import type { Foto } from '../domain/tipos'
 import { Cuadricula, FotoImg, fotoFondo, portadaLote, Visor } from './Galeria'
 import { useState } from 'react'
+import { VERSION } from '../version'
 import { ProximasVisitas } from './Agenda'
 
 export function Diferencia({ v, prom: r, palabra = "" }: { v: number | null; prom: number | null; palabra?: string }) {
@@ -53,8 +54,8 @@ export default function Inicio() {
   const activos = lotes.filter(l => etapaActual(l) < TERMINADO).sort((a, b) => a.fechaSiembra < b.fechaSiembra ? -1 : 1)
   return (
     <div className="stack-lg">
-      {fondo ? <div className="hero"><FotoImg f={fondo} alt="" /><div className="brand"><Flor /><div><div className="eyebrow">{flarga(hoy())}</div><h1>Girasoleros Cerinza</h1></div></div></div>
-        : <div className="brand"><Flor /><div><div className="eyebrow">{flarga(hoy())}</div><h1>Girasoleros Cerinza</h1></div></div>}
+      {fondo ? <div className="hero"><FotoImg f={fondo} alt="" /><div className="brand"><Flor /><div><div className="eyebrow">{flarga(hoy())}</div><h1>Girasoleros Cerinza</h1><div className="ver">Versión {VERSION}</div></div></div></div>
+        : <div className="brand"><Flor /><div><div className="eyebrow">{flarga(hoy())}</div><h1>Girasoleros Cerinza</h1><div className="ver">Versión {VERSION}</div></div></div>}
       <section className="stack"><h2>Lotes en curso</h2>
         {!listo ? <div className="empty">Cargando…</div> : activos.length ? activos.map(l => <LoteCard key={l.id} l={l} lotes={lotes} fotos={fotos} temporada={tn(l.temporadaId)} />)
           : <div className="empty">Aún no hay lotes sembrados. Ve a <b>Siembras</b>, crea la temporada y agrega el lote con su fecha de siembra.

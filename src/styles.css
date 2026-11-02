@@ -64,8 +64,11 @@ button,.btn{font:inherit;cursor:pointer}
 .nav div{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
 .nav button{background:none;border:0;color:var(--muted);padding:9px 2px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.78rem;font-weight:700}
 .nav button svg{width:24px;height:24px}
-.nav button[aria-current="page"]{color:var(--leaf)}
-.nav button.add span.dot{background:var(--sun);color:#2A1D05;border-radius:14px;width:44px;height:30px;display:grid;place-items:center}
+/* El fondo amarillo marca la pantalla en la que estás */
+.nav button span.dot{border-radius:14px;width:52px;height:30px;display:grid;place-items:center;transition:background .2s,color .2s}
+.nav button[aria-current="page"]{color:var(--fg)}
+.nav button[aria-current="page"] span.dot{background:var(--sun);color:#2A1D05}
+.nav button.add:not([aria-current="page"]) span.dot{border:1.5px dashed var(--line)}
 .year{font-family:var(--f-display);font-size:2rem;font-weight:800;color:var(--soil);line-height:1}
 .lotes{display:flex;flex-direction:column;gap:8px;margin-top:10px}
 .lotebtn{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:inherit;text-align:left}
@@ -210,3 +213,5 @@ label.chk{display:flex;flex-direction:row;align-items:center;gap:10px;padding:6p
 .chk input{width:22px;height:22px;flex:none;accent-color:var(--leaf)}
 .chk span{display:flex;flex-direction:column;font-weight:700}
 .chk small{font-weight:400;color:var(--muted);font-size:.82rem}
+.ver{font-size:.78rem;color:var(--muted);font-weight:700}
+.hero .ver{color:#F4E7C8}

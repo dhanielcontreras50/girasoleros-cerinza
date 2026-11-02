@@ -7,6 +7,7 @@ import { subirPendientes, usePendientes } from './fotos'
 import { useEnLinea } from './online'
 import { ir, useRuta } from './ruta'
 import { Flor, ICON, Toasts, toast } from './ui'
+import { VERSION } from './version'
 import Inicio from './pages/Inicio'
 import Siembras from './pages/Siembras'
 import LoteVista from './pages/Lote'
@@ -51,7 +52,7 @@ function Menu() {
         {user?.photoURL ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" /> : (user?.displayName || 'D')[0]}
       </button>
       {open && <div className="sheet" onClick={e => { if (e.target === e.currentTarget) setOpen(false) }}><div role="dialog" aria-modal="true" className="stack">
-        <h2>{user?.displayName}</h2><div className="muted">{user?.email}</div>
+        <h2>{user?.displayName}</h2><div className="muted">{user?.email} · versión {VERSION}</div>
         <button className="btn ghost full" onClick={() => descargarExcel(datos).then(() => toast('Archivo de Excel descargado')).catch(() => toast('No se pudo crear el archivo'))}>Descargar todo en Excel</button>
         <p className="muted" style={{ margin: 0, fontSize: '.88rem' }}>Si sales, lo que no haya subido a la nube se queda en este celular hasta que vuelvas a entrar.</p>
         <div className="two"><button className="btn ghost" onClick={() => setOpen(false)}>Cerrar</button><button className="btn" onClick={() => salir()}>Salir</button></div>
@@ -106,7 +107,7 @@ function Shell() {
       <nav className="nav" aria-label="Secciones"><div style={{ gridTemplateColumns: `repeat(${items.length},1fr)` }}>
         {items.map(([k, n, ic]) => (
           <button key={k} className={k === 'registrar' ? 'add' : ''} aria-current={(area === 'analisis' ? tab0 : tab) === k ? 'page' : undefined} onClick={() => ir(`${area || 'cultivo'}/${k}`)}>
-            {k === 'registrar' ? <span className="dot">{ICON[ic]}</span> : ICON[ic]}{n}
+            <span className="dot">{ICON[ic]}</span>{n}
           </button>))}
       </div></nav>
     </>
