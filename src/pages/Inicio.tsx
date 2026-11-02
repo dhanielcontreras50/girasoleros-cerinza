@@ -46,7 +46,7 @@ export default function Inicio() {
   const hayVisitas = reservas.some(r => r.fecha >= iso(hoy()) && (r.estado === 'pendiente' || r.estado === 'confirmada'))
   const [ver, setVer] = useState<number | null>(null)
   const fondo = fotoFondo(fotos)
-  const mejores = fotos.filter(f => f.favorita).sort((a, b) => a.fecha === b.fecha ? (b.creado || 0) - (a.creado || 0) : a.fecha < b.fecha ? 1 : -1).slice(0, 6)
+  const mejores = fotos.filter(f => f.favorita && !f.recetaId).sort((a, b) => a.fecha === b.fecha ? (b.creado || 0) - (a.creado || 0) : a.fecha < b.fecha ? 1 : -1).slice(0, 6)
   const tn = (id: string) => { const t = temporadas.find(x => x.id === id); return t ? `${t.nombre} ${t.anio}` : '' }
   const tem = [...temporadas].sort((a, b) => a.inicio < b.inicio ? 1 : -1)[0]
   const tt = totales(movs.filter(m => m.temporadaId === tem?.id))

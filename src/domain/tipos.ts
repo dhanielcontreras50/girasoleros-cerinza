@@ -7,7 +7,9 @@ export type Lote = {
   portadaId?: string | null
 }
 export type Nota = { loteId: string; etapa: string; fecha: string; texto: string }
-export type Foto = { loteId: string; etapa: string; fecha: string; estado: 'pendiente' | 'subida'; url?: string; path?: string; w?: number; h?: number
+export type Foto = { loteId: string; etapa: string
+  /** fotos de semillas tostadas: receta y, si aplica, la presentación */
+  recetaId?: string; paqueteId?: string | null; fecha: string; estado: 'pendiente' | 'subida'; url?: string; path?: string; w?: number; h?: number
   /** marcada entre las mejores fotos */
   favorita?: boolean
   /** momento en que se escogió de fondo de Inicio (la mayor gana) */
@@ -21,8 +23,8 @@ export type Cosecha = { loteId: string; fecha: string; producto: string; cantida
 export type Labor = { loteId: string; fecha: string; tipo: string; nota: string }
 export type Producto = { nombre: string; unidad: string }
 export type Ingrediente = { id: string; nombre: string; gramos: number; precioKg: number; merma: number; semilla: boolean }
-export type Receta = { nombre: string; activa: boolean; rendimiento: number | null; ingredientes: Ingrediente[] }
-export type Paquete = { recetaId: string; gramos: number; precio: number; empaque: number; etiqueta: number; activa: boolean }
+export type Receta = { nombre: string; activa: boolean; rendimiento: number | null; ingredientes: Ingrediente[]; portadaId?: string | null }
+export type Paquete = { recetaId: string; gramos: number; precio: number; empaque: number; etiqueta: number; activa: boolean; portadaId?: string | null }
 export type CostosTanda = { semilla: number; ingredientes: number; empaques: number; etiquetas: number; indirectos: number }
 export type Tanda = { fecha: string; recetaId: string; semilla: number; salida: number; empacado: number; costos: CostosTanda; paquetes: { refId: string; unidades: number; costoU: number }[]; nota: string }
 export type TVenta = { fecha: string; refId: string; unidades: number; precio: number; cliente: string }

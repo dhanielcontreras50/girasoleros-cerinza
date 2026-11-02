@@ -1,6 +1,7 @@
 import type { ConId } from './db'
 import type { Foto } from './domain/tipos'
 import { blobLocal } from './fotos'
+import { toast } from './ui'
 
 export async function copiar(texto: string) {
   try { await navigator.clipboard.writeText(texto); return true } catch {
@@ -33,6 +34,13 @@ export async function compartir(texto: string, fotos: ConId<Foto>[]): Promise<'f
   } catch (e) {
     return (e as Error)?.name === 'AbortError' ? 'cancelado' : 'copiado'
   }
+}
+
+/** Comparte y avisa con un mensaje corto si algo no salió como se esperaba. */
+export async function enviar(texto: string, fotos: ConId<Foto>[]) {
+  const r = await compartir(texto, fotos)
+  if (r === 'copiado') toast('Mensaje copiado. Pégalo en WhatsApp')
+  else if (r === 'texto' && fotos.length) toast('Se compartió sin fotos; el texto también quedó copiado')
 }
 
 export const whatsapp = (tel: string, texto: string) => `https://wa.me/${tel}?text=${encodeURIComponent(texto)}`

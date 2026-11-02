@@ -37,7 +37,7 @@ export default function LoteVista({ id }: { id: string }) {
   const subir = async (etapa: string, files: FileList | null) => {
     if (!files?.length || !user) return
     toast('Guardando fotos…')
-    const n = await agregarFotos(user.uid, l.id, etapa, [...files])
+    const n = await agregarFotos(user.uid, { loteId: l.id, etapa }, [...files])
     toast(n === 1 ? 'Foto guardada' : `${n} fotos guardadas`)
   }
 

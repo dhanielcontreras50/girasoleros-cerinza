@@ -5,10 +5,14 @@ import { costoReceta, costoUnit, gramos, inventario, rend, rendCalculado } from 
 import { ir } from '../../ruta'
 import { toast, valor } from '../../ui'
 import { TMovimientos, useTDatos } from './comun'
+import { CompartirPresentaciones, FotosReceta } from './Fotos'
+import { FotoImg, portadaReceta } from '../Galeria'
+import { useDatos } from '../../datos'
 
 export default function RecetaVista({ id }: { id: string }) {
   const d = useTDatos()
   const [tipoIng, setTipoIng] = useState<'s' | 'o'>('s')
+  const { fotos } = useDatos()
   const r = d.recetas.find(x => x.id === id)
   if (!d.listo) return <div className="empty">Cargando…</div>
   if (!r) return <div className="stack"><button className="back" onClick={() => ir('tostadas/recetas')}>← Recetas</button><div className="empty">Esta receta ya no existe.</div></div>
@@ -17,8 +21,10 @@ export default function RecetaVista({ id }: { id: string }) {
   const calc = r.ingredientes.map(i => i.merma ? `${gramos(i.gramos)} ${i.nombre.toLowerCase()} − ${i.merma}% = ${gramos(i.gramos * (1 - i.merma / 100))}` : `${gramos(i.gramos)} ${i.nombre.toLowerCase()}`).join(' + ')
   return (
     <div className="stack-lg">
-      <div><button className="back" onClick={() => ir('tostadas/recetas')}>← Recetas</button><h1>{r.nombre}</h1><div className="muted">Rinde {gramos(rd)} tostado · {plata(cr)} en ingredientes</div></div>
+      <div><button className="back" onClick={() => ir('tostadas/recetas')}>← Recetas</button>{(() => { const p = portadaReceta(r, fotos); return p ? <FotoImg f={p} alt={`Portada de ${r.nombre}`} className="cover" /> : null })()}<h1>{r.nombre}</h1><div className="muted">Rinde {gramos(rd)} tostado · {plata(cr)} en ingredientes</div></div>
       <div className="row wrap"><button className="btn small" onClick={() => ir(`tostadas/registrar/produccion/${r.id}`)}>+ Producción</button><button className="btn small ghost" onClick={() => ir(`tostadas/registrar/venta/${r.id}`)}>+ Venta</button></div>
+
+      <FotosReceta r={r} ps={ps} />
 
       <section className="card stack"><h3>Ingredientes</h3>
         <div className="list">{r.ingredientes.length ? r.ingredientes.map(i => <div className="li" key={i.id}><div><b>{i.nombre}</b><small>{gramos(i.gramos)} · {plata(i.precioKg)}/kg{i.merma ? ` · pierde ${i.merma}% al tostar` : ''}</small></div>
@@ -61,6 +67,8 @@ export default function RecetaVista({ id }: { id: string }) {
           <button className="btn small ghost" type="submit">Agregar paquete</button>
         </form>
       </section>
+
+      <CompartirPresentaciones r={r} ps={ps} />
 
       <section className="card"><form className="stack" style={{ gap: 10 }} onSubmit={e => { e.preventDefault(); actualizar('recetas', r.id, { nombre: valor(e.currentTarget, 'nombre') }); toast('Guardado') }}>
         <label>Nombre de la receta<input name="nombre" defaultValue={r.nombre} required /></label>

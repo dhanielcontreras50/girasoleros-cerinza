@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { compartir, copiar, whatsapp } from '../compartir'
+import { copiar, enviar, whatsapp } from '../compartir'
 import { actualizar, borrar, crear, crearConId, type ConId } from '../db'
 import { useDatos } from '../datos'
 import { AJUSTES_BASE, abierto, ocupa, DIAS_SEMANA, estadoDia, hora12, loteVitrina, mensajeConfirmacion, mensajeDisponibilidad, sumarHoras, telWa, turnosDe, type EstadoDia } from '../domain/agenda'
@@ -7,7 +7,7 @@ import { PAQUETES } from '../domain/cuentas'
 import { hoy, iso, parse, plata } from '../domain/fechas'
 import type { AjustesAgenda, DiaEspecial, Foto, Reserva } from '../domain/tipos'
 import { Confirmar, Sheet, toast, valor } from '../ui'
-import { FotoImg } from './Galeria'
+import { Escogidas, esCultivo, FotoPicker } from './Galeria'
 
 type R = ConId<Reserva>
 const ESTADOS: Record<Reserva['estado'], string> = { pendiente: 'Por confirmar', confirmada: 'Confirmada', llego: 'Llegaron', cancelada: 'Cancelada' }
@@ -26,7 +26,7 @@ export function useAgenda() {
 /** Fotos para mandar a los turistas: favoritas en flor primero, luego otras favoritas, luego las últimas del lote. */
 function fotosParaTuristas(fotos: ConId<Foto>[], loteId?: string) {
   const rec = (x: ConId<Foto>[]) => [...x].sort((p, q) => (q.creado || 0) - (p.creado || 0))
-  const favs = fotos.filter(f => f.favorita)
+  const favs = fotos.filter(f => f.favorita && esCultivo(f))
   const lista = [...rec(favs.filter(f => f.etapa === 'floracion')), ...rec(favs.filter(f => f.etapa !== 'floracion')), ...rec(fotos.filter(f => f.loteId === loteId))]
   return [...new Map(lista.map(f => [f.id, f])).values()].slice(0, 3)
 }
@@ -34,43 +34,6 @@ function fotosParaTuristas(fotos: ConId<Foto>[], loteId?: string) {
 const guardarAjustes = (a: AjustesAgenda, cambios: Partial<AjustesAgenda>) => crearConId('ajustes', 'agenda', { ...a, ...cambios })
 export const MAX_FOTOS = 6
 
-/** Para escoger fotos: favoritas primero. Con max=1 se escoge una sola. */
-function FotoPicker({ titulo, sel, max, onGuardar, onCerrar }: { titulo: string; sel: string[]; max: number; onGuardar: (ids: string[]) => void; onCerrar: () => void }) {
-  const { fotos, lotes } = useDatos()
-  const [ids, setIds] = useState(sel.filter(id => fotos.some(f => f.id === id)))
-  const orden = [...fotos].sort((x, y) => (+!!y.favorita - +!!x.favorita) || (y.creado || 0) - (x.creado || 0))
-  const tocar = (id: string) => {
-    if (max === 1) { setIds(ids[0] === id ? [] : [id]); return }
-    if (ids.includes(id)) setIds(ids.filter(x => x !== id))
-    else if (ids.length < max) setIds([...ids, id])
-    else toast(`Máximo ${max} fotos`)
-  }
-  return (
-    <div className="sheet" onClick={e => { if (e.target === e.currentTarget) onCerrar() }}>
-      <div role="dialog" aria-modal="true" aria-label={titulo} className="stack">
-        <h2 style={{ margin: 0 }}>{titulo}</h2>
-        <small className="muted">{max === 1 ? 'Toca la foto que quieres mandar.' : `Toca hasta ${max} fotos. Se mandan en el orden en que las escojas.`} Las ★ son tus favoritas.</small>
-        {orden.length ? <div className="photos" style={{ marginTop: 0 }}>{orden.map(f => {
-          const k = ids.indexOf(f.id), l = lotes.find(x => x.id === f.loteId)
-          return <button key={f.id} className={'thumb pick' + (k >= 0 ? ' on' : '')} aria-pressed={k >= 0} aria-label={`Foto de ${l?.nombre || ''} del ${f.fecha}`} onClick={() => tocar(f.id)}>
-            <FotoImg f={f} />{f.favorita && <span className="star">★</span>}{k >= 0 && <span className="num">{max === 1 ? '✓' : k + 1}</span>}</button>
-        })}</div> : <div className="empty">Todavía no hay fotos. Tómalas desde cada etapa del lote, en Siembras.</div>}
-        <div className="two"><button className="btn ghost" onClick={onCerrar}>Cancelar</button><button className="btn" onClick={() => { onGuardar(ids); onCerrar() }}>Listo</button></div>
-      </div>
-    </div>
-  )
-}
-
-/** Fila de miniaturas de las fotos escogidas. */
-function Escogidas({ lista }: { lista: ConId<Foto>[] }) {
-  return <div className="escogidas">{lista.map(f => <FotoImg key={f.id} f={f} />)}</div>
-}
-
-async function enviar(texto: string, fotos: ConId<Foto>[]) {
-  const r = await compartir(texto, fotos)
-  if (r === 'copiado') toast('Mensaje copiado. Pégalo en WhatsApp')
-  else if (r === 'texto' && fotos.length) toast('Se compartió sin fotos; el texto también quedó copiado')
-}
 
 function Calendario({ mes, setMes, sel, setSel, estado, nRes }: { mes: Date; setMes: (d: Date) => void; sel: string; setSel: (f: string) => void; estado: (f: string) => EstadoDia; nRes: (f: string) => number }) {
   const y = mes.getFullYear(), m = mes.getMonth()
@@ -198,7 +161,7 @@ function ReservaVista({ r, a, onCerrar, onEditar, onLlegaron }: { r: R; a: Ajust
             : <a className="btn" href={whatsapp(tel, msg)} target="_blank" rel="noreferrer" style={{ textAlign: 'center', textDecoration: 'none' }}>Enviar por WhatsApp</a>}
         </div>
         {foto && tel && <a className="link" href={whatsapp(tel, msg)} target="_blank" rel="noreferrer" style={{ alignSelf: 'flex-start' }}>Abrir el chat de {r.nombre.split(' ')[0]} en WhatsApp (solo texto)</a>}
-        {escoger && <FotoPicker titulo="Foto para la confirmación" max={1} sel={a.fotoConfirmacion ? [a.fotoConfirmacion] : []} onCerrar={() => setEscoger(false)} onGuardar={ids => { guardarAjustes(a, { fotoConfirmacion: ids[0] || null }); toast(ids[0] ? 'Foto guardada para las confirmaciones' : 'Confirmación sin foto') }} />}
+        {escoger && <FotoPicker filtro={esCultivo} titulo="Foto para la confirmación" max={1} sel={a.fotoConfirmacion ? [a.fotoConfirmacion] : []} onCerrar={() => setEscoger(false)} onGuardar={ids => { guardarAjustes(a, { fotoConfirmacion: ids[0] || null }); toast(ids[0] ? 'Foto guardada para las confirmaciones' : 'Confirmación sin foto') }} />}
         {r.estado !== 'llego' && r.estado !== 'cancelada' && <button className="btn full sun" onClick={onLlegaron}>✓ Llegaron</button>}
         {r.estado === 'llego' && <div className="row between"><small className="muted">Ya está en Cuentas como ingreso de turistas.</small>
           <button className="link" onClick={() => { if (r.movId) borrar('movs', r.movId); actualizar('reservas', r.id, { estado: 'confirmada', movId: null }); toast('Llegada deshecha') }}>Deshacer</button></div>}
@@ -292,7 +255,7 @@ export default function Agenda() {
           <div className="row between"><b style={{ fontSize: '.92rem' }}>Fotos que van con el mensaje</b><button className="link" onClick={() => setEscoger(true)}>Escoger fotos</button></div>
           {paraEnviar.length ? <Escogidas lista={paraEnviar} /> : <small className="muted">Sin fotos. Toca "Escoger fotos" para agregarlas.</small>}
           {auto && paraEnviar.length > 0 && <small className="muted">Por ahora van tus favoritas automáticamente.</small>}
-          {escoger && <FotoPicker titulo="Fotos para el saludo" max={MAX_FOTOS} sel={paraEnviar.map(f => f.id)} onCerrar={() => setEscoger(false)} onGuardar={ids => { guardarAjustes(a, { fotosSaludo: ids }); toast(ids.length ? `${ids.length} ${ids.length === 1 ? 'foto lista' : 'fotos listas'} para el saludo` : 'El saludo va sin fotos') }} />}
+          {escoger && <FotoPicker filtro={esCultivo} titulo="Fotos para el saludo" max={MAX_FOTOS} sel={paraEnviar.map(f => f.id)} onCerrar={() => setEscoger(false)} onGuardar={ids => { guardarAjustes(a, { fotosSaludo: ids }); toast(ids.length ? `${ids.length} ${ids.length === 1 ? 'foto lista' : 'fotos listas'} para el saludo` : 'El saludo va sin fotos') }} />}
         </div>
       </section>
 

@@ -24,7 +24,8 @@ async function reducir(file: File): Promise<{ blob: Blob; w: number; h: number }
 }
 
 let avisar: () => void = () => {}
-export async function agregarFotos(uid: string, loteId: string, etapa: string, files: File[]) {
+/** Guarda fotos con sus datos: { loteId, etapa } en el cultivo o { recetaId, paqueteId } en tostadas. */
+export async function agregarFotos(uid: string, meta: Record<string, string | null>, files: File[]) {
   let n = 0
   for (const f of files) {
     try {
@@ -32,7 +33,7 @@ export async function agregarFotos(uid: string, loteId: string, etapa: string, f
       const id = doc(collection(db, 'x')).id
       const path = `users/${uid}/fotos/${id}.jpg`
       await set(id, { blob, uid, path } satisfies Pendiente, cola)
-      crearConId('fotos', id, { loteId, etapa, fecha: iso(hoy()), estado: 'pendiente', path, w, h })
+      crearConId('fotos', id, { loteId: '', etapa: '', ...meta, fecha: iso(hoy()), estado: 'pendiente', path, w, h })
       n++
     } catch (e) { console.error(e) }
   }
